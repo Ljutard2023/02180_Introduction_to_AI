@@ -20,11 +20,11 @@ The goal of this assignment is to implement a functional version of Ricochet Rob
 ## How to install
 
 Clone the repository :
-'''
+```
 git clone https://github.com/your-username/ricochet-robots-ai.git
-'''
+```
 Navigate to the directory :
-'''
+
 cd ricochet-robots-ai
 '''
 
