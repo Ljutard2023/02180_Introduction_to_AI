@@ -11,4 +11,29 @@ The goal of this assignment is to implement a functional version of Ricochet Rob
 - Complexity: Each collision-to-collision slide counts as one move.
 - Game Type: It is a deterministic, perfect information, and turn-based puzzle game.
 
-- 
+## Features
+
+- Game Engine: A Python-based implementation of the Ricochet Robots board and movement logic.
+- AI Solver: An implementation of search-based algorithms (e.g., Breadth-First Search or A*) to solve puzzles optimally.
+- Modular Architecture: Strict separation between the game engine and the AI logic as per assignment requirements.
+
+## How to install
+
+Clone the repository :
+'''
+git clone https://github.com/your-username/ricochet-robots-ai.git
+'''
+Navigate to the directory :
+'''
+cd ricochet-robots-ai
+'''
+
+## Contributors
+This project was carried out by a group of 4 students :
+- s257473
+- s253050
+- s225786
+- s253191
+
+
+
