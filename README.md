@@ -35,5 +35,6 @@ This project was carried out by a group of 4 students :
 - s225786
 - s253191
 
-
+## License
+This project is for academic purposes for the course 02180 Introduction to AI, Spring 26.
 
