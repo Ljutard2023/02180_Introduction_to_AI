@@ -24,9 +24,9 @@ Clone the repository :
 git clone https://github.com/your-username/ricochet-robots-ai.git
 ```
 Navigate to the directory :
-
+```
 cd ricochet-robots-ai
-'''
+```
 
 ## Contributors
 This project was carried out by a group of 4 students :
