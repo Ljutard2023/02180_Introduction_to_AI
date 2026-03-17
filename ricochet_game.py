@@ -5,7 +5,6 @@ import sys
 import random
 from pathlib import Path
 
-# import your board file
 import ricochet_robots_board as board
 
 # ============================================
@@ -20,9 +19,6 @@ ASSETS_DIR = BASE_DIR / "Game pieces png"
 
 COLORS = ["red", "blue", "green", "yellow"]
 
-# --------------------------------------------
-# FIXED SYMBOL POSITIONS (row, col)
-# --------------------------------------------
 FIXED_SYMBOLS = {
     ("blue","bio"): (4,9),
     ("blue","tar"): (1,5),
@@ -46,7 +42,7 @@ FIXED_SYMBOLS = {
 }
 
 # ============================================
-# LOGICAL GRID (WALLS)
+# GRID
 # ============================================
 class Square:
     def __init__(self, x, y):
@@ -104,17 +100,24 @@ def load_img(name, size):
 
 
 # ============================================
-# INIT PYGAME
+# INIT
 # ============================================
 pygame.init()
-screen = pygame.display.set_mode((1000, 800))
+screen = pygame.display.set_mode((1100, 800))
 pygame.display.set_caption("Ricochet Robots")
 clock = pygame.time.Clock()
 
 font = pygame.font.SysFont(None, 26)
 
+# UI colors
+BUTTON_COLOR = (200, 200, 210)
+BUTTON_HOVER = (180, 180, 190)
+BUTTON_BORDER = (100, 100, 110)
+
+reset_button = pygame.Rect(820, 80, 200, 50)
+
 # ============================================
-# LOAD BOARD IMAGE ONCE
+# LOAD BOARD
 # ============================================
 board_path = board.generate_board()
 board_surface = pygame.image.load(board_path)
@@ -201,7 +204,16 @@ def draw():
 
     screen.blit(board_surface, (0, 0))
 
-    # symbols (fixed)
+    # 🎯 TARGET IN CENTER ONLY
+    if target:
+        center_x = GRID_ORIGIN + (7.5 * CELL)
+        center_y = GRID_ORIGIN + (7.5 * CELL)
+
+        img = symbol_imgs[target["color"]][target["type"]]
+        rect = img.get_rect(center=(center_x, center_y))
+        screen.blit(img, rect)
+
+    # symbols
     for s in symbols:
         px, py = grid_to_pixel(*s["pos"])
         img = symbol_imgs[s["color"]][s["type"]]
@@ -216,20 +228,26 @@ def draw():
         screen.blit(img, rect)
 
     # UI panel
-    pygame.draw.rect(screen, (240, 240, 245), (800, 0, 250, 800))
+    pygame.draw.rect(screen, (240, 240, 245), (800, 0, 300, 800))
 
-    txt = font.render("Press R to reload robots", True, (0, 0, 0))
-    screen.blit(txt, (800, 40))
+    mouse_pos = pygame.mouse.get_pos()
 
-    if target:
-        txt = font.render(f"Target:", True, (0, 0, 0))
-        screen.blit(txt, (800, 120))
+    title = font.render("Ricochet Robots", True, (0, 0, 0))
+    screen.blit(title, (820, 20))
 
-        txt2 = font.render(f"{target['color']} {target['type']}", True, (0, 0, 0))
-        screen.blit(txt2, (800, 150))
+    # button
+    if reset_button.collidepoint(mouse_pos):
+        pygame.draw.rect(screen, BUTTON_HOVER, reset_button, border_radius=8)
+    else:
+        pygame.draw.rect(screen, BUTTON_COLOR, reset_button, border_radius=8)
 
-        img = symbol_imgs[target["color"]][target["type"]]
-        screen.blit(img, (800, 190))
+    pygame.draw.rect(screen, BUTTON_BORDER, reset_button, 2, border_radius=8)
+
+    btn_text = font.render("Reset Robots", True, (0, 0, 0))
+    screen.blit(btn_text, btn_text.get_rect(center=reset_button.center))
+
+    txt = font.render("Press R to reload", True, (80, 80, 80))
+    screen.blit(txt, (820, 150))
 
 
 # ============================================
@@ -243,6 +261,10 @@ while True:
 
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_r:
+                reset()
+
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if reset_button.collidepoint(event.pos):
                 reset()
 
     draw()
