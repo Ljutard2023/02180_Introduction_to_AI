@@ -19,7 +19,8 @@ Controls
 AI Solver panel
 ---------------
   Opens with F5 or the "Run All AIs" button.
-  BFS, DFS, and A* run in background threads.
+  BFS, DFS, A*1 (phase heuristic H1), and A*2 (alignment heuristic H2)
+  run in background threads.
   When a solution is found:
     • The full move list is shown immediately.
     • Use ◀ Prev / Next ▶ to step through moves one at a time.
@@ -43,17 +44,19 @@ from board import (
     _copy_robots,
 )
 from game import Game, Move, Solution, _ricocheted
-from solvers.bfs_solver   import SolverBFS
-from solvers.dfs_solver   import SolverDFS
-from solvers.astar_solver import SolverAStar
+from solvers.bfs_solver    import SolverBFS
+from solvers.dfs_solver    import SolverDFS
+from solvers.astar_solver  import SolverAStar
+from solvers.astar_solver2 import SolverAStarH2
 
 
-# ── Solver registry (only BFS, DFS, A*) ───────────────────────────────────────
+# ── Solver registry ────────────────────────────────────────────────────────────
 
 SOLVERS: dict[str, type] = {
-    'BFS': SolverBFS,
-    'DFS': SolverDFS,
-    'A*':  SolverAStar,
+    'BFS':  SolverBFS,
+    'DFS':  SolverDFS,
+    'A*1':  SolverAStar,    # A* with phase heuristic H1
+    'A*2':  SolverAStarH2,  # A* with alignment heuristic H2 (stronger)
 }
 
 
@@ -297,7 +300,7 @@ class AIWindow(tk.Toplevel):
             cell[r][c] = '#'
 
         # Mark all targets  (symbol: lowercase color initial + 't')
-        for r, c, color, _sym in self.app.board.targets:
+        for r, c, color, _ in self.app.board.targets:
             cell[r][c] = color[0].lower() + 't'
 
         # Highlight the active target with uppercase 'T'
