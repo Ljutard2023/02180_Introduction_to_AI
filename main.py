@@ -346,17 +346,6 @@ class AIWindow(tk.Toplevel):
                   f'{status:<12}  {sol_str}')
         print()
 
-        # ── Board matrix ──────────────────────────────────────────────────────
-        col_hdr = '     ' + '  '.join(chr(ord('A') + i) for i in range(N))
-        print(col_hdr)
-        print('    +' + '--' * N + '-+')
-        for r in range(N):
-            row_lbl = f'{r + 1:>2}'
-            row_str = ' '.join(f'{cell[r][c]:>2}' for c in range(N))
-            print(f' {row_lbl} | {row_str} |')
-        print('    +' + '--' * N + '-+')
-        print('  Legend: T=active target  xt=other target  R/G/B/Y=robots  '
-              '#=centre  .=empty')
         print(sep + '\n')
 
     def _draw_chart(self) -> None:
@@ -681,6 +670,7 @@ class App:
             ("Reset Round  Esc",  self._reset_round,  '#16A085'),
             ("Skip Chip",         self._skip_chip,    '#E67E22'),
             ("Run All AIs  F5",   self._open_ai,      '#8E44AD'),
+            ("Benchmark",         self._open_benchmark, '#1A7A4A'),
             ("New Map",           self._new_map,      '#C0392B'),
         ]
         for txt, cmd, bg in buttons:
@@ -1200,6 +1190,10 @@ class App:
         active = tcolor if tcolor in COLORS else COLORS[0]
         self._ai_window = AIWindow(
             self, _copy_robots(self.round_start), self.cur_target, active)
+
+    def _open_benchmark(self) -> None:
+        from benchmark import BenchmarkWindow
+        BenchmarkWindow(self.root)
 
     # ── Playback API (called by AIWindow) ─────────────────────────────────────
 
