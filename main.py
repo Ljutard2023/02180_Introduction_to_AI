@@ -783,22 +783,28 @@ class App:
         col = HEX.get(color, '#9B59B6')
         s   = CFG.CS // 4 + 2
         cv  = self.cv
-        if sym == 'circle':
+        if sym in ('bio', 'circle'):
+            # Biohazard / circle: filled oval with ☣ text
             cv.create_oval(cx - s, cy - s, cx + s, cy + s,
                            fill=col, outline='white', width=1)
-        elif sym == 'square':
-            cv.create_rectangle(cx - s, cy - s, cx + s, cy + s,
-                                fill=col, outline='white', width=1)
-        elif sym == 'triangle':
+            cv.create_text(cx, cy, text='☣',
+                           font=('Helvetica', s, 'bold'), fill='white')
+        elif sym in ('tar', 'square'):
+            # Target / square: concentric circles
+            cv.create_oval(cx - s, cy - s, cx + s, cy + s,
+                           fill=col, outline='white', width=2)
+            cv.create_oval(cx - s // 2, cy - s // 2, cx + s // 2, cy + s // 2,
+                           fill='white', outline=col, width=1)
+        elif sym in ('tri', 'triangle'):
+            # Triangle
             cv.create_polygon(cx, cy - s, cx - s, cy + s, cx + s, cy + s,
                               fill=col, outline='white')
-        elif sym == 'star':
+        elif sym in ('hex', 'star'):
+            # Hexagon
             pts: list[float] = []
-            for i in range(5):
-                a = math.pi * i * 2 / 5 - math.pi / 2
+            for i in range(6):
+                a = math.pi * i / 3 - math.pi / 2
                 pts += [cx + s * math.cos(a), cy + s * math.sin(a)]
-                a += math.pi / 5
-                pts += [cx + s * .42 * math.cos(a), cy + s * .42 * math.sin(a)]
             cv.create_polygon(pts, fill=col, outline='white')
         elif sym == 'vortex':
             cv.create_text(cx, cy, text='✦',
