@@ -37,94 +37,59 @@ WALL_THICKNESS = 5
 # Each L-wall = two perpendicular line segments meeting at a corner.
 FIXED_WALLS = [
 
-    # Single Walls -------------------------------------------------------
+    # ── Target pocket walls (one per side of each target cell) ──────────────
+    # red circle   (1, 2)
+    (1,  2,  "S"),  (1,  2,  "E"),
+    # red square   (2, 13)
+    (2,  13, "N"),  (2,  13, "W"),
+    # red triangle (11, 5)
+    (11, 5,  "S"),  (11, 5,  "E"),
+    # red star     (9, 12)
+    (9,  12, "N"),  (9,  12, "W"),
+    # green circle (3, 1)
+    (3,  1,  "N"),  (3,  1,  "E"),
+    # green square (4, 9)
+    (4,  9,  "S"),  (4,  9,  "W"),
+    # green triangle (1, 6)
+    (1,  6,  "S"),  (1,  6,  "W"),
+    # green star   (13, 3)
+    (13, 3,  "N"),  (13, 3,  "E"),
+    # blue circle  (5, 4)
+    (5,  4,  "N"),  (5,  4,  "E"),
+    # blue square  (2, 10)
+    (2,  10, "S"),  (2,  10, "W"),
+    # blue triangle (10, 2)
+    (10, 2,  "S"),  (10, 2,  "E"),
+    # blue star    (6, 14)
+    (6,  14, "N"),  (6,  14, "W"),
+    # yellow circle (4, 6)
+    (4,  6,  "S"),  (4,  6,  "E"),
+    # yellow square (1, 11)
+    (1,  11, "N"),  (1,  11, "W"),
+    # yellow triangle (12, 9)
+    (12, 9,  "S"),  (12, 9,  "W"),
+    # yellow star  (14, 13)
+    (14, 13, "N"),  (14, 13, "W"),
+    # all vortex   (8, 11)
+    (8,  11, "S"),  (8,  11, "W"),
 
-    # Row 1, between C & D (East wall of C1)
-    (0,  2, "E"),
-    # Row 1, between I & J
-    (0,  8, "E"),
-    # Row 16, between F & G
-    (15, 5, "E"),
-    # Row 16, between L & M
-    (15, 11, "E"),
-    # Column 1, betweek 4 & 5
-    (3,  0, "S"),   # S of A4 (horizontal, touches left border)
-    # Column 1, betweek 11 & 12
-    (10, 0, "S"),   # S of A11
-    # Column 15, betweek 2 & 3
-    (1, 15, "S"),   # N of O3 (horizontal, touches right border)
-    # Column 15, betweek 10 & 11
-    (9, 15, "S"),   # N of O10
-
-    # L-walls -------------------------------------------------------
-
-    # L-bracket at F/G cols, rows 2-3: vertical between F&G at row2, horizontal below G row2
-    (1,  5, "W"),
-    (1,  5, "S"),
-
-    # L-bracket at H/I cols, rows 3-4: horizontal below I row3, vertical between H&I at row3
-    (1,  11, "N"),
-    (1,  11, "W"),
-
-    # L-bracket at A/B cols, rows 4-5: horizontal below A row4, vertical between A&B at row4
-    (2,  7, "S"),
-    (2,  7, "E"),
-
-    # L-bracket at E/F cols, rows 5-6: vertical between E&F at row5, horizontal below E row5
-    (3,  14, "E"),
-    (3,  14, "N"),
-
-    # L-bracket at C/D cols, rows 6: vertical between C&D row6, horizontal below C row6
-    (4,  3, "E"),
-    (4,  3, "S"),
-
-    # L-bracket at G/H cols, rows 6-7: horizontal below G row6, vertical between G&H row7
-    (4,  9, "S"),
-    (4,  9, "E"),
-
-    # L-bracket at J/K cols, rows 4-5: vertical between J&K at row4, horizontal below J row4
-    (5,  6, "W"),
-    (5,  6, "N"),
-
-    # L-bracket at L/M cols, rows 2: vertical between L&M row2, horizontal below L row2
-    (6, 1, "E"),
-    (6, 1, "N"),
-
-    # L-bracket at N/O cols, rows 3-4: vertical between N&O rows 3-4, horizontal above O row4
-    (6, 12, "W"),
-    (6, 12, "S"),
-
-    # L-bracket at B/C cols, rows 9-10: vertical between B&C row10, horizontal below B row10
-    (9,  1, "E"),
-    (9,  1, "N"),
-
-    # L-bracket at B/C cols, rows 6-7: vertical between B&C row6-7, horizontal below B row7
-    (9,  5, "W"),
-    (9,  5, "N"),
-
-    # L-bracket at L/M cols, rows 7: vertical between L&M row7, horizontal below L row7
-    (10, 8, "E"),
-    (10, 8, "S"),
-
-    # L-bracket at M/N cols, rows 7-8: horizontal above N row8, vertical between M&N row7
-    (11, 13, "W"),
-    (11, 13, "N"),
-
-    # Row 11, between A&B (touches left border): horizontal S of A11
-    (12, 6, "S"),
-    (12, 6, "E"),
-
-    # L-bracket at F/G cols, rows 9-10: vertical between F&G row9, horizontal below F row9
-    (13,  9, "W"),
-    (13,  9, "S"),
-
-    # L-bracket at J/K cols, rows 11: horizontal below J row11, vertical between J&K row11
-    (14, 2, "S"),
-    (14, 2, "W"),
-
-    # Row 14, between O&P (touches right border): horizontal S of P10
-    (14, 14, "N"),
-    (14, 14, "E"),
+    # ── Extra corridor walls ─────────────────────────────────────────────────
+    (2,  3,  "E"),  (3,  3,  "S"),
+    (5,  2,  "N"),  (5,  2,  "E"),
+    (6,  5,  "S"),  (6,  5,  "W"),
+    (3,  7,  "S"),
+    (2,  8,  "S"),
+    (3,  12, "N"),  (3,  12, "E"),
+    (5,  10, "S"),  (5,  11, "W"),
+    (6,  8,  "N"),
+    (9,  1,  "S"),  (9,  4,  "N"),
+    (10, 6,  "E"),  (11, 7,  "S"),
+    (13, 5,  "N"),  (14, 2,  "E"),
+    (9,  9,  "S"),  (9,  13, "N"),
+    (11, 11, "E"),  (12, 10, "N"),
+    (13, 14, "S"),  (14, 8,  "E"),
+    (6,  3,  "N"),  (9,  6,  "S"),
+    (6,  13, "S"),  (9,  10, "N"),
 ]
 
 
