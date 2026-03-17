@@ -281,6 +281,80 @@ class AIWindow(tk.Toplevel):
 
         if len(self.solutions) == len(SOLVERS):
             self.after(50, self._draw_chart)
+            self._print_console_matrix()
+
+    def _print_console_matrix(self) -> None:
+        """Print a text-based board matrix and AI stats table to the console."""
+        N = 16
+        tgt = self.target
+        tpos = (tgt[0], tgt[1])
+
+        # Build cell content: one character per cell
+        cell: list[list[str]] = [['.' for _ in range(N)] for _ in range(N)]
+
+        # Mark centre block
+        for r, c in CENTER:
+            cell[r][c] = '#'
+
+        # Mark all targets  (symbol: lowercase color initial + 't')
+        for r, c, color, _sym in self.app.board.targets:
+            cell[r][c] = color[0].lower() + 't'
+
+        # Highlight the active target with uppercase 'T'
+        cell[tpos[0]][tpos[1]] = 'T'
+
+        # Mark robots (override target symbols if robot sits on target)
+        for col, (r, c) in self.robots_start.items():
+            cell[r][c] = col[0].upper()
+
+        # ── Header ────────────────────────────────────────────────────────────
+        sep = '=' * 70
+        print('\n' + sep)
+        print('  RICOCHET ROBOTS — AI SOLVER RESULTS')
+        print(sep)
+        tcolor, tsym = tgt[2], tgt[3]
+        grid_col = chr(ord('A') + tgt[1])
+        print(f'  Target : {tcolor.upper()} {tsym.upper()}  @  '
+              f'row {tgt[0] + 1}, col {tgt[1] + 1}  ({grid_col}{tgt[0] + 1})')
+        rparts = '  '.join(
+            f'{c[0].upper()}=({r + 1},{col_ + 1})'
+            for c, (r, col_) in sorted(self.robots_start.items())
+        )
+        print(f'  Robots : {rparts}')
+        print()
+
+        # ── Stats table ───────────────────────────────────────────────────────
+        print(f'  {"Algorithm":<10}  {"Moves":>5}  {"Time (s)":>9}  '
+              f'{"Status":<12}  Solution')
+        print(f'  {"-"*10}  {"-"*5}  {"-"*9}  {"-"*12}  {"-"*36}')
+        for name in SOLVERS:
+            sol = self.solutions.get(name)
+            dt  = self.times.get(name, 0.0)
+            if sol:
+                mv_str  = str(len(sol))
+                status  = '✓ Found'
+                sol_str = '  '.join(
+                    f'{c[0].upper()}{d}' for c, d in sol)
+            else:
+                mv_str  = '—'
+                status  = '✗ Not found'
+                sol_str = '—'
+            print(f'  {name:<10}  {mv_str:>5}  {dt:>9.3f}  '
+                  f'{status:<12}  {sol_str}')
+        print()
+
+        # ── Board matrix ──────────────────────────────────────────────────────
+        col_hdr = '     ' + '  '.join(chr(ord('A') + i) for i in range(N))
+        print(col_hdr)
+        print('    +' + '--' * N + '-+')
+        for r in range(N):
+            row_lbl = f'{r + 1:>2}'
+            row_str = ' '.join(f'{cell[r][c]:>2}' for c in range(N))
+            print(f' {row_lbl} | {row_str} |')
+        print('    +' + '--' * N + '-+')
+        print('  Legend: T=active target  xt=other target  R/G/B/Y=robots  '
+              '#=centre  .=empty')
+        print(sep + '\n')
 
     def _draw_chart(self) -> None:
         cv = self._chart_cv
@@ -324,6 +398,8 @@ class AIWindow(tk.Toplevel):
                   self._btn_reset, self._btn_export):
             b.config(state=tk.NORMAL)
         self._show_full_solution()
+        # Pause the board pulse so it doesn't overwrite the playback display
+        self.app._cancel_pulse()
         self._pb_reset()
 
     def _show_full_solution(self) -> None:
@@ -400,6 +476,8 @@ class AIWindow(tk.Toplevel):
     def destroy(self) -> None:
         self._cancel_auto()
         self.app.playback_clear()
+        # Restart the board pulse that was paused during playback
+        self.app._start_pulse()
         super().destroy()
 
 
