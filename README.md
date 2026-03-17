@@ -88,7 +88,7 @@ Three algorithms run simultaneously in background threads:
 | Algorithm | Guarantee        | Description                                      |
 |-----------|------------------|--------------------------------------------------|
 | **BFS**   | Optimal (fewest moves) | Breadth-first explores all k-move paths before k+1 |
-| **DFS**   | Complete (finds a solution if one exists within the depth limit) | Depth-first with global visited set |
+| **DFS**   | Complete within depth limit (`SOLVER_MAX_MOVES=16`) | Depth-first with global visited set; not guaranteed to return the shortest solution, and may miss solutions requiring more than 16 moves |
 | **A\***   | Optimal          | BFS-guided by an admissible heuristic; explores fewer nodes |
 
 ### Viewing solutions

@@ -24,11 +24,12 @@ class Config:
     N: int   = 16    # grid size (cells per side)
     CS: int  = 44    # cell size in pixels
     M: int   = 24    # canvas margin in pixels (for coordinate labels)
-    TIMEOUT: float = 10.0   # solver timeout in seconds
-    ANIM_FRAMES: int = 8    # robot slide animation frames
-    ANIM_MS: int     = 18   # ms per animation frame
-    PULSE_MS: int    = 800  # target pulse interval (ms)
-    AUTO_PLAY_MS: int = 600 # default auto-play interval (ms)
+    TIMEOUT: float = 10.0    # solver timeout in seconds
+    ANIM_FRAMES: int = 8     # robot slide animation frames
+    ANIM_MS: int     = 18    # ms per animation frame
+    PULSE_MS: int    = 800   # target pulse interval (ms)
+    AUTO_PLAY_MS: int = 600  # default auto-play interval (ms)
+    SOLVER_MAX_MOVES: int = 16  # search depth limit for all solvers
 
 CFG = Config()
 

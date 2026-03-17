@@ -37,7 +37,7 @@ from __future__ import annotations
 
 import heapq
 
-from board import Robots, COLORS, DIR_LIST, _copy_robots, _skey
+from board import Robots, COLORS, DIR_LIST, _copy_robots, _skey, CFG
 from game import Game, Move, Solution, _reached, _heuristic, _ricocheted
 
 
@@ -59,7 +59,7 @@ class SolverAStar:
         self.game = game
 
     def solve(self, initial_state: Robots, target: tuple, active: str,
-              max_moves: int = 16) -> Solution:
+              max_moves: int = CFG.SOLVER_MAX_MOVES) -> Solution:
         """
         Find the optimal path from *initial_state* to the goal using A*.
 

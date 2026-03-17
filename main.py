@@ -232,7 +232,15 @@ class AIWindow(tk.Toplevel):
     # ── Solver execution ──────────────────────────────────────────────────────
 
     def _run_all_solvers(self) -> None:
-        """Launch BFS, DFS, and A* each in a daemon background thread."""
+        """
+        Launch BFS, DFS, and A* each in a daemon background thread.
+
+        Daemon threads are intentional: if the user closes the AIWindow (or
+        the main application) while solvers are still running, the threads are
+        killed automatically rather than keeping the process alive.  Solvers
+        hold no external resources (only in-memory data structures), so abrupt
+        termination is safe.
+        """
         for name, cls in SOLVERS.items():
             threading.Thread(target=self._run_one,
                              args=(name, cls), daemon=True).start()

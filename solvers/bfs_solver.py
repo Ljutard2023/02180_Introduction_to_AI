@@ -25,7 +25,7 @@ from __future__ import annotations
 
 from collections import deque
 
-from board import Robots, COLORS, DIR_LIST, _copy_robots
+from board import Robots, COLORS, DIR_LIST, _copy_robots, CFG
 from game import Game, Move, Solution, _state_key, _reached
 
 
@@ -44,7 +44,7 @@ class SolverBFS:
         self.game = game
 
     def solve(self, initial_state: Robots, target: tuple, active: str,
-              max_moves: int = 16) -> Solution:
+              max_moves: int = CFG.SOLVER_MAX_MOVES) -> Solution:
         """
         Find the shortest path from *initial_state* to the goal.
 
