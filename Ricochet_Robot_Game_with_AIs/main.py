@@ -5,15 +5,21 @@ Ricochet Robots – Main Application
 Entry point that wires together the board/pieces model (board.py),
 game logic (game.py), and AI solvers (solvers/) into a graphical game.
 
-Controls
---------
+At startup the user chooses between two modes:
+
+  Human Mode  — multiplayer game with bidding and scoring.
+  AI Mode     — AI-focused interface: run a single solver, all solvers,
+                or a full benchmark.  No players or bidding required.
+
+Controls (both modes)
+---------------------
   Arrow keys         — move the selected robot
   Tab / R            — cycle to the next robot
   1-4                — select robot by index
   Z / U              — undo last move
   Enter              — confirm solution
   Escape             — reset round to start positions
-  F5                 — open the AI Solver panel
+  F5                 — open the AI Solver panel (Run All AIs)
   Click a robot      — select that robot
 
 AI Solver panel
@@ -78,12 +84,15 @@ class AIWindow(tk.Toplevel):
     """
 
     def __init__(self, parent_app: 'App', robots_start: Robots,
-                 target: tuple, active: str) -> None:
+                 target: tuple, active: str,
+                 solvers: 'dict[str, type] | None' = None) -> None:
         super().__init__(parent_app.root)
         self.app          = parent_app
         self.robots_start = robots_start
         self.target       = target
         self.active       = active
+        # Use provided solver subset, or all solvers if none specified
+        self._solvers: dict[str, type] = solvers if solvers is not None else SOLVERS
 
         self.title("AI Solver – Ricochet Robots")
         self.resizable(True, False)
@@ -130,8 +139,8 @@ class AIWindow(tk.Toplevel):
                      ).grid(row=0, column=ci, padx=3, pady=2)
 
         self._row_widgets: dict[str, tuple] = {}
-        for i, name in enumerate(SOLVERS):
-            cls   = SOLVERS[name]
+        for i, name in enumerate(self._solvers):
+            cls   = self._solvers[name]
             c_hex = cls.color
             row   = i + 1
             tk.Label(tf, text=name, font=('Helvetica', 9, 'bold'),
@@ -244,7 +253,7 @@ class AIWindow(tk.Toplevel):
         hold no external resources (only in-memory data structures), so abrupt
         termination is safe.
         """
-        for name, cls in SOLVERS.items():
+        for name, cls in self._solvers.items():
             threading.Thread(target=self._run_one,
                              args=(name, cls), daemon=True).start()
 
@@ -276,13 +285,13 @@ class AIWindow(tk.Toplevel):
         tm.config(text=f"{dt:.3f}")
         if sol:
             st.config(text='✓ found', fg='#2ECC71')
-            pb_btn.config(state=tk.NORMAL, bg=SOLVERS[name].color)
+            pb_btn.config(state=tk.NORMAL, bg=self._solvers[name].color)
         else:
             st.config(text='✗ none', fg='#E74C3C')
         pb_spin.stop()
         pb_spin.config(mode='determinate', value=100 if sol else 0)
 
-        if len(self.solutions) == len(SOLVERS):
+        if len(self.solutions) == len(self._solvers):
             self.after(50, self._draw_chart)
             self._print_console_matrix()
 
@@ -330,7 +339,7 @@ class AIWindow(tk.Toplevel):
         print(f'  {"Algorithm":<10}  {"Moves":>5}  {"Time (s)":>9}  '
               f'{"Status":<12}  Solution')
         print(f'  {"-"*10}  {"-"*5}  {"-"*9}  {"-"*12}  {"-"*36}')
-        for name in SOLVERS:
+        for name in self._solvers:
             sol = self.solutions.get(name)
             dt  = self.times.get(name, 0.0)
             if sol:
@@ -351,7 +360,7 @@ class AIWindow(tk.Toplevel):
     def _draw_chart(self) -> None:
         cv = self._chart_cv
         cv.delete('all')
-        results = [(n, self.solutions.get(n)) for n in SOLVERS]
+        results = [(n, self.solutions.get(n)) for n in self._solvers]
         vals    = [len(s) for _, s in results if s]
         if not vals:
             cv.create_text(240, 35, text="No solutions found",
@@ -360,7 +369,7 @@ class AIWindow(tk.Toplevel):
         max_v = max(vals)
         W, H  = 480, 70
         pad_l, pad_r, pad_b, pad_t = 30, 10, 18, 8
-        bar_w = (W - pad_l - pad_r) / len(SOLVERS) - 4
+        bar_w = (W - pad_l - pad_r) / len(self._solvers) - 4
 
         for i, (name, sol) in enumerate(results):
             x0    = pad_l + i * (bar_w + 4)
@@ -368,7 +377,7 @@ class AIWindow(tk.Toplevel):
             bar_h = ((H - pad_t - pad_b) * val / max_v) if max_v else 0
             y1    = H - pad_b - bar_h
             y2    = H - pad_b
-            col   = SOLVERS[name].color if sol else '#566573'
+            col   = self._solvers[name].color if sol else '#566573'
             cv.create_rectangle(x0, y1, x0 + bar_w, y2, fill=col, outline='')
             if val:
                 cv.create_text(x0 + bar_w / 2, y1 - 4, text=str(val),
@@ -488,8 +497,10 @@ class App:
 
         self.board       = Board()
         self.game        = Game(self.board)
+        self.mode:       str              = 'human'
         self.players:    list[str]        = []
         self.scores:     dict[str, int]   = {}
+        self.score_lbls: dict[str, tk.Label] = {}
         self.win_goal:   int              = 5
         self.robots:     Robots           = {}
         self.round_start: Robots          = {}
@@ -513,7 +524,9 @@ class App:
 
     def _run(self) -> None:
         self.root.withdraw()
-        self._ask_players()
+        self.mode = self._choose_mode()
+        if self.mode == 'human':
+            self._ask_players()
         self._place_robots()
         self._init_chips()
         self._build_ui()
@@ -522,6 +535,57 @@ class App:
         self.root.mainloop()
 
     # ── Setup ─────────────────────────────────────────────────────────────────
+
+    def _choose_mode(self) -> str:
+        """
+        Show a startup dialog so the user can pick between Human Mode and
+        AI Mode.  Returns 'human' or 'ai'.
+        """
+        dlg = tk.Toplevel(self.root)
+        dlg.title("Ricochet Robots – Mode Selection")
+        dlg.resizable(False, False)
+        dlg.configure(bg='#1A252F')
+        dlg.grab_set()
+
+        chosen = tk.StringVar(value='')
+
+        def set_mode(m: str) -> None:
+            chosen.set(m)
+            dlg.destroy()
+
+        tk.Label(dlg, text="RICOCHET ROBOTS",
+                 font=('Helvetica', 18, 'bold'),
+                 fg='white', bg='#1A252F').pack(pady=(24, 4))
+        tk.Label(dlg, text="Select Game Mode",
+                 font=('Helvetica', 11), fg='#BDC3C7',
+                 bg='#1A252F').pack(pady=(0, 20))
+
+        btn_frame = tk.Frame(dlg, bg='#1A252F')
+        btn_frame.pack(padx=40, pady=(0, 24))
+
+        # Human Mode button
+        tk.Button(btn_frame, text="👤  Human Mode",
+                  font=('Helvetica', 12, 'bold'),
+                  bg='#2980B9', fg='white', width=20,
+                  command=lambda: set_mode('human')).pack(pady=(0, 4))
+        tk.Label(btn_frame,
+                 text="Multiplayer game with bidding and scoring",
+                 font=('Helvetica', 8), fg='#7F8C8D',
+                 bg='#1A252F').pack(pady=(0, 16))
+
+        # AI Mode button
+        tk.Button(btn_frame, text="🤖  AI Mode",
+                  font=('Helvetica', 12, 'bold'),
+                  bg='#8E44AD', fg='white', width=20,
+                  command=lambda: set_mode('ai')).pack(pady=(0, 4))
+        tk.Label(btn_frame,
+                 text="Run solvers: Single AI · All AIs · Benchmark",
+                 font=('Helvetica', 8), fg='#7F8C8D',
+                 bg='#1A252F').pack()
+
+        dlg.protocol("WM_DELETE_WINDOW", lambda: set_mode('human'))
+        self.root.wait_window(dlg)
+        return chosen.get() or 'human'
 
     def _ask_players(self) -> None:
         n = (simpledialog.askinteger(
@@ -569,7 +633,10 @@ class App:
         rf = tk.Frame(self.root, bg='#1A252F', width=290)
         rf.pack(side=tk.RIGHT, fill=tk.Y, padx=(0, 10), pady=10)
         rf.pack_propagate(False)
-        self._build_panel(rf)
+        if self.mode == 'ai':
+            self._build_ai_panel(rf)
+        else:
+            self._build_panel(rf)
 
         for key, d in [('<Up>', 'N'), ('<Down>', 'S'),
                        ('<Left>', 'W'), ('<Right>', 'E')]:
@@ -674,6 +741,106 @@ class App:
             ("New Map",           self._new_map,      '#C0392B'),
         ]
         for txt, cmd, bg in buttons:
+            tk.Button(f, text=txt, command=cmd, bg=bg, fg='white',
+                      font=('Helvetica', 9, 'bold'),
+                      width=28, anchor='w').pack(pady=2, padx=6)
+
+        lbl("Arrows → move  |  Tab/R cycle  |  1-4 pick",
+            size=8, color='#566573', pady=(8, 2))
+
+    def _build_ai_panel(self, f: tk.Frame) -> None:
+        """
+        Build the right-side control panel for AI Mode.
+
+        Provides:
+          • Target / Moves / Chips display (same as Human Mode)
+          • Selected-robot indicator
+          • A dropdown + button to run a single AI solver
+          • Quick-access buttons: Run All AIs, Benchmark, Reset, New Map, Skip
+        """
+        def sep() -> None:
+            tk.Frame(f, height=1, bg='#34495E').pack(fill=tk.X, padx=6, pady=5)
+
+        def lbl(text: str, size: int = 9, bold: bool = False,
+                color: str = '#BDC3C7', pady: tuple = (3, 0)) -> None:
+            tk.Label(f, text=text,
+                     font=('Helvetica', size, 'bold' if bold else 'normal'),
+                     fg=color, bg='#1A252F').pack(pady=pady)
+
+        lbl("RICOCHET ROBOTS", 13, bold=True, color='white', pady=(10, 2))
+        lbl("AI  MODE", 10, bold=True, color='#8E44AD', pady=(0, 4))
+        sep()
+
+        lbl("TARGET", bold=True)
+        self.lbl_target = tk.Label(f, text="—",
+                                   font=('Helvetica', 14, 'bold'),
+                                   fg='white', bg='#1A252F')
+        self.lbl_target.pack()
+
+        row = tk.Frame(f, bg='#1A252F')
+        row.pack(pady=2)
+        for text in ("MOVES", "CHIPS"):
+            tk.Label(row, text=text, font=('Helvetica', 8, 'bold'),
+                     fg='#BDC3C7', bg='#1A252F').pack(side=tk.LEFT, padx=14)
+        row2 = tk.Frame(f, bg='#1A252F')
+        row2.pack()
+        self.lbl_moves = tk.Label(row2, text="0", width=4,
+                                  font=('Helvetica', 24, 'bold'),
+                                  fg='#E74C3C', bg='#1A252F')
+        self.lbl_moves.pack(side=tk.LEFT, padx=10)
+        self.lbl_chips = tk.Label(row2, text="17", width=4,
+                                  font=('Helvetica', 24, 'bold'),
+                                  fg='#3498DB', bg='#1A252F')
+        self.lbl_chips.pack(side=tk.LEFT, padx=10)
+
+        sep()
+        lbl("SELECTED ROBOT", bold=True)
+        self.lbl_sel = tk.Label(f, text=COLORS[0].upper(),
+                                font=('Helvetica', 13, 'bold'),
+                                fg=HEX[COLORS[0]], bg='#1A252F')
+        self.lbl_sel.pack()
+        lbl("Tab/R cycle  |  1-4 pick  |  Click robot", size=8, color='#566573')
+
+        sep()
+        lbl("RUN SINGLE AI", bold=True)
+        ai_row = tk.Frame(f, bg='#1A252F')
+        ai_row.pack(pady=(4, 2), fill=tk.X, padx=8)
+        self._single_ai_var = tk.StringVar(value=list(SOLVERS.keys())[0])
+        solver_names = list(SOLVERS.keys())
+        om = tk.OptionMenu(ai_row, self._single_ai_var, *solver_names)
+        om.config(bg='#2C3E50', fg='white',
+                  font=('Helvetica', 9), width=7,
+                  highlightthickness=0, activebackground='#34495E',
+                  activeforeground='white')
+        om['menu'].config(bg='#2C3E50', fg='white',
+                          activebackground='#34495E',
+                          activeforeground='white')
+        om.pack(side=tk.LEFT, padx=(0, 6))
+        tk.Button(ai_row, text="▶ Run",
+                  command=self._run_single_ai,
+                  bg='#2980B9', fg='white',
+                  font=('Helvetica', 9, 'bold'), width=7).pack(side=tk.LEFT)
+
+        sep()
+        lbl("ALL SOLVERS / BENCHMARK", bold=True)
+        buttons: list[tuple[str, object, str]] = [
+            ("Run All AIs  F5",   self._open_ai,        '#8E44AD'),
+            ("Benchmark",         self._open_benchmark,  '#1A7A4A'),
+        ]
+        for txt, cmd, bg in buttons:
+            tk.Button(f, text=txt, command=cmd, bg=bg, fg='white',
+                      font=('Helvetica', 9, 'bold'),
+                      width=28, anchor='w').pack(pady=2, padx=6)
+
+        sep()
+        lbl("BOARD CONTROLS", bold=True)
+        board_buttons: list[tuple[str, object, str]] = [
+            ("Undo       U/Z",    self._undo,         '#7F8C8D'),
+            ("Reset Round  Esc",  self._reset_round,  '#16A085'),
+            ("Skip Chip",         self._skip_chip,    '#E67E22'),
+            ("New Map",           self._new_map,      '#C0392B'),
+        ]
+        for txt, cmd, bg in board_buttons:
             tk.Button(f, text=txt, command=cmd, bg=bg, fg='white',
                       font=('Helvetica', 9, 'bold'),
                       width=28, anchor='w').pack(pady=2, padx=6)
@@ -1032,6 +1199,11 @@ class App:
 
     def _new_round(self) -> None:
         if not self.chips:
+            if self.mode == 'ai':
+                messagebox.showinfo("Game Over",
+                                    "All chips done!\nStarting a new map.")
+                self._new_map()
+                return
             best = max(self.scores.values())
             wrs  = [p for p, s in self.scores.items() if s == best]
             messagebox.showinfo("Game Over",
@@ -1046,8 +1218,9 @@ class App:
         self.bids.clear()
         self.bid_order.clear()
         self.bid_try = 0
-        self.lbl_timer.config(text="")
-        self.lbl_bids.config(text="")
+        if self.mode == 'human':
+            self.lbl_timer.config(text="")
+            self.lbl_bids.config(text="")
         self._cancel_timer()
         self._start_pulse()
 
@@ -1096,7 +1269,8 @@ class App:
         self.move_count = 0
         self.bids.clear()
         self.bid_order.clear()
-        self.lbl_bids.config(text="")
+        if self.mode == 'human':
+            self.lbl_bids.config(text="")
         self._new_round()
 
     # ── Bidding ───────────────────────────────────────────────────────────────
@@ -1148,7 +1322,8 @@ class App:
         if self.timer_id:
             self.root.after_cancel(self.timer_id)
             self.timer_id = None
-        self.lbl_timer.config(text="")
+        if self.mode == 'human':
+            self.lbl_timer.config(text="")
 
     def _start_execution(self) -> None:
         self.bid_order = sorted(
@@ -1190,6 +1365,22 @@ class App:
         active = tcolor if tcolor in COLORS else COLORS[0]
         self._ai_window = AIWindow(
             self, _copy_robots(self.round_start), self.cur_target, active)
+
+    def _run_single_ai(self) -> None:
+        """Open the AI solver window for the single solver selected in the dropdown."""
+        if not self.cur_target:
+            return
+        if self._ai_window and self._ai_window.winfo_exists():
+            self._ai_window.lift()
+            return
+        name = self._single_ai_var.get()
+        if name not in SOLVERS:
+            return
+        tcolor = self.cur_target[2]
+        active = tcolor if tcolor in COLORS else COLORS[0]
+        self._ai_window = AIWindow(
+            self, _copy_robots(self.round_start), self.cur_target, active,
+            solvers={name: SOLVERS[name]})
 
     def _open_benchmark(self) -> None:
         from benchmark import BenchmarkWindow
