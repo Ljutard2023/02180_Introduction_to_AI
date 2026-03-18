@@ -51,7 +51,7 @@ def _reached(robots: Robots, active: str,
 def _heuristic(robots: Robots, active: str,
                tpos: tuple[int, int], rh: bool) -> int:
     """
-    Admissible heuristic used by A*.
+    Admissible heuristic used by A*1 (phase heuristic).
 
     Returns
     -------
@@ -64,6 +64,43 @@ def _heuristic(robots: Robots, active: str,
     if robots.get(active) == tpos and rh:
         return 0
     return 1 if rh else 2
+
+
+def _heuristic_aligned(robots: Robots, active: str,
+                       tpos: tuple[int, int], rh: bool) -> int:
+    """
+    Stronger admissible heuristic used by A*2 (alignment-aware).
+
+    Rationale
+    ---------
+    In Ricochet Robots a robot can only stop *on* the target cell when it
+    slides along the same row or column and is not blocked before it.
+    Therefore:
+
+    • If the active robot has already ricocheted **and** is on the same row
+      or column as the target → at best 1 more slide needed  →  h = 1.
+    • If the active robot has ricocheted but is **not** aligned with the
+      target → it needs ≥ 1 slide to reach the target's row/column PLUS
+      ≥ 1 slide to reach the target itself  →  h = 2.
+    • If the robot has not yet ricocheted, at least 2 more moves are always
+      needed (same as the phase heuristic)  →  h = 2.
+
+    This is always ≥ _heuristic() (never overestimates) and therefore
+    admissible.  It is strictly stronger in the "ricocheted, not aligned"
+    case, so A*2 typically expands fewer nodes than A*1.
+
+    Returns
+    -------
+    0, 1, or 2  — admissible lower bound on remaining moves.
+    """
+    pos = robots.get(active)
+    if pos == tpos and rh:
+        return 0
+    if rh and pos is not None:
+        if pos[0] == tpos[0] or pos[1] == tpos[1]:
+            return 1   # aligned with target — at least 1 more move needed
+        return 2       # not aligned — need ≥ 2 more slides to align then reach
+    return 2           # ricochet not yet satisfied — need ≥ 2 more moves
 
 
 def _state_key(robots: Robots, hist: list[Move], active: str) -> tuple:

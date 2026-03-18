@@ -1,20 +1,20 @@
 """
-Ricochet Robots – A* Solver
-=============================
-A* combines BFS's guarantee of optimality with a heuristic to focus the
-search toward the goal, typically exploring fewer nodes than plain BFS.
+Ricochet Robots – A*1 Solver
+==============================
+A* with the phase heuristic (H1) combines BFS's optimality guarantee with a
+heuristic to focus the search toward the goal.
 
-Admissible heuristic h(state, rh):
+Admissible heuristic H1 (phase heuristic):
   0 — active robot is already on the target and has ricocheted  (goal)
   1 — active robot has ricocheted but hasn't reached the target yet
   2 — active robot hasn't ricocheted yet
 
 This heuristic never overestimates the remaining cost:
-  - When rh is False, at least two more moves are always needed
-    (one to ricochet, one to reach the target).
-  - When rh is True, at least one more move is needed to reach the target
-    (unless already there).
-So h is admissible and A* returns an optimal solution.
+  - When rh is False, at least two more moves are always needed.
+  - When rh is True, at least one more move is needed to reach the target.
+So H1 is admissible and A*1 returns an optimal solution.
+
+For a stronger variant see astar_solver2.py (A*2 / alignment heuristic H2).
 
 Interface
 ---------
@@ -43,16 +43,18 @@ from game import Game, Move, Solution, _reached, _heuristic, _ricocheted
 
 class SolverAStar:
     """
-    A* search with an admissible heuristic.
+    A*1 — A* search with the phase heuristic (H1).
 
     Explores nodes in order of f = g + h, where:
       g = moves made so far
-      h = admissible lower bound on remaining moves
+      h = H1 (0/1/2 based on whether the robot has ricocheted and/or
+               reached the target)
 
     Guarantees an optimal (minimum-move) solution.
+    See SolverAStarH2 for a stronger heuristic variant.
     """
 
-    name  = "A*"
+    name  = "A*1"
     color = "#3498DB"
 
     def __init__(self, game: Game) -> None:
@@ -61,7 +63,7 @@ class SolverAStar:
     def solve(self, initial_state: Robots, target: tuple, active: str,
               max_moves: int = CFG.SOLVER_MAX_MOVES) -> Solution:
         """
-        Find the optimal path from *initial_state* to the goal using A*.
+        Find the optimal path from *initial_state* to the goal using A*1 (H1).
 
         Returns the move list, or None if no solution exists within
         *max_moves* steps.

@@ -19,7 +19,8 @@ Controls
 AI Solver panel
 ---------------
   Opens with F5 or the "Run All AIs" button.
-  BFS, DFS, and A* run in background threads.
+  BFS, DFS, A*1 (phase heuristic H1), and A*2 (alignment heuristic H2)
+  run in background threads.
   When a solution is found:
     • The full move list is shown immediately.
     • Use ◀ Prev / Next ▶ to step through moves one at a time.
@@ -43,17 +44,19 @@ from board import (
     _copy_robots,
 )
 from game import Game, Move, Solution, _ricocheted
-from solvers.bfs_solver   import SolverBFS
-from solvers.dfs_solver   import SolverDFS
-from solvers.astar_solver import SolverAStar
+from solvers.bfs_solver    import SolverBFS
+from solvers.dfs_solver    import SolverDFS
+from solvers.astar_solver  import SolverAStar
+from solvers.astar_solver2 import SolverAStarH2
 
 
-# ── Solver registry (only BFS, DFS, A*) ───────────────────────────────────────
+# ── Solver registry ────────────────────────────────────────────────────────────
 
 SOLVERS: dict[str, type] = {
-    'BFS': SolverBFS,
-    'DFS': SolverDFS,
-    'A*':  SolverAStar,
+    'BFS':  SolverBFS,
+    'DFS':  SolverDFS,
+    'A*1':  SolverAStar,    # A* with phase heuristic H1
+    'A*2':  SolverAStarH2,  # A* with alignment heuristic H2 (stronger)
 }
 
 
@@ -281,6 +284,69 @@ class AIWindow(tk.Toplevel):
 
         if len(self.solutions) == len(SOLVERS):
             self.after(50, self._draw_chart)
+            self._print_console_matrix()
+
+    def _print_console_matrix(self) -> None:
+        """Print a text-based board matrix and AI stats table to the console."""
+        N = 16
+        tgt = self.target
+        tpos = (tgt[0], tgt[1])
+
+        # Build cell content: one character per cell
+        cell: list[list[str]] = [['.' for _ in range(N)] for _ in range(N)]
+
+        # Mark centre block
+        for r, c in CENTER:
+            cell[r][c] = '#'
+
+        # Mark all targets  (symbol: lowercase color initial + 't')
+        for r, c, color, _ in self.app.board.targets:
+            cell[r][c] = color[0].lower() + 't'
+
+        # Highlight the active target with uppercase 'T'
+        cell[tpos[0]][tpos[1]] = 'T'
+
+        # Mark robots (override target symbols if robot sits on target)
+        for col, (r, c) in self.robots_start.items():
+            cell[r][c] = col[0].upper()
+
+        # ── Header ────────────────────────────────────────────────────────────
+        sep = '=' * 70
+        print('\n' + sep)
+        print('  RICOCHET ROBOTS — AI SOLVER RESULTS')
+        print(sep)
+        tcolor, tsym = tgt[2], tgt[3]
+        grid_col = chr(ord('A') + tgt[1])
+        print(f'  Target : {tcolor.upper()} {tsym.upper()}  @  '
+              f'row {tgt[0] + 1}, col {tgt[1] + 1}  ({grid_col}{tgt[0] + 1})')
+        rparts = '  '.join(
+            f'{c[0].upper()}=({r + 1},{col_ + 1})'
+            for c, (r, col_) in sorted(self.robots_start.items())
+        )
+        print(f'  Robots : {rparts}')
+        print()
+
+        # ── Stats table ───────────────────────────────────────────────────────
+        print(f'  {"Algorithm":<10}  {"Moves":>5}  {"Time (s)":>9}  '
+              f'{"Status":<12}  Solution')
+        print(f'  {"-"*10}  {"-"*5}  {"-"*9}  {"-"*12}  {"-"*36}')
+        for name in SOLVERS:
+            sol = self.solutions.get(name)
+            dt  = self.times.get(name, 0.0)
+            if sol:
+                mv_str  = str(len(sol))
+                status  = '✓ Found'
+                sol_str = '  '.join(
+                    f'{c[0].upper()}{d}' for c, d in sol)
+            else:
+                mv_str  = '—'
+                status  = '✗ Not found'
+                sol_str = '—'
+            print(f'  {name:<10}  {mv_str:>5}  {dt:>9.3f}  '
+                  f'{status:<12}  {sol_str}')
+        print()
+
+        print(sep + '\n')
 
     def _draw_chart(self) -> None:
         cv = self._chart_cv
@@ -324,6 +390,8 @@ class AIWindow(tk.Toplevel):
                   self._btn_reset, self._btn_export):
             b.config(state=tk.NORMAL)
         self._show_full_solution()
+        # Pause the board pulse so it doesn't overwrite the playback display
+        self.app._cancel_pulse()
         self._pb_reset()
 
     def _show_full_solution(self) -> None:
@@ -400,6 +468,8 @@ class AIWindow(tk.Toplevel):
     def destroy(self) -> None:
         self._cancel_auto()
         self.app.playback_clear()
+        # Restart the board pulse that was paused during playback
+        self.app._start_pulse()
         super().destroy()
 
 
@@ -600,6 +670,7 @@ class App:
             ("Reset Round  Esc",  self._reset_round,  '#16A085'),
             ("Skip Chip",         self._skip_chip,    '#E67E22'),
             ("Run All AIs  F5",   self._open_ai,      '#8E44AD'),
+            ("Benchmark",         self._open_benchmark, '#1A7A4A'),
             ("New Map",           self._new_map,      '#C0392B'),
         ]
         for txt, cmd, bg in buttons:
@@ -702,22 +773,28 @@ class App:
         col = HEX.get(color, '#9B59B6')
         s   = CFG.CS // 4 + 2
         cv  = self.cv
-        if sym == 'circle':
+        if sym in ('bio', 'circle'):
+            # Biohazard / circle: filled oval with ☣ text
             cv.create_oval(cx - s, cy - s, cx + s, cy + s,
                            fill=col, outline='white', width=1)
-        elif sym == 'square':
-            cv.create_rectangle(cx - s, cy - s, cx + s, cy + s,
-                                fill=col, outline='white', width=1)
-        elif sym == 'triangle':
+            cv.create_text(cx, cy, text='☣',
+                           font=('Helvetica', s, 'bold'), fill='white')
+        elif sym in ('tar', 'square'):
+            # Target / square: concentric circles
+            cv.create_oval(cx - s, cy - s, cx + s, cy + s,
+                           fill=col, outline='white', width=2)
+            cv.create_oval(cx - s // 2, cy - s // 2, cx + s // 2, cy + s // 2,
+                           fill='white', outline=col, width=1)
+        elif sym in ('tri', 'triangle'):
+            # Triangle
             cv.create_polygon(cx, cy - s, cx - s, cy + s, cx + s, cy + s,
                               fill=col, outline='white')
-        elif sym == 'star':
+        elif sym in ('hex', 'star'):
+            # Hexagon
             pts: list[float] = []
-            for i in range(5):
-                a = math.pi * i * 2 / 5 - math.pi / 2
+            for i in range(6):
+                a = math.pi * i / 3 - math.pi / 2
                 pts += [cx + s * math.cos(a), cy + s * math.sin(a)]
-                a += math.pi / 5
-                pts += [cx + s * .42 * math.cos(a), cy + s * .42 * math.sin(a)]
             cv.create_polygon(pts, fill=col, outline='white')
         elif sym == 'vortex':
             cv.create_text(cx, cy, text='✦',
@@ -1113,6 +1190,10 @@ class App:
         active = tcolor if tcolor in COLORS else COLORS[0]
         self._ai_window = AIWindow(
             self, _copy_robots(self.round_start), self.cur_target, active)
+
+    def _open_benchmark(self) -> None:
+        from benchmark import BenchmarkWindow
+        BenchmarkWindow(self.root)
 
     # ── Playback API (called by AIWindow) ─────────────────────────────────────
 

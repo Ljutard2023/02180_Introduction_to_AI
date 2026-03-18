@@ -37,7 +37,7 @@ CFG = Config()
 # ── Piece / direction constants ────────────────────────────────────────────────
 
 COLORS:   tuple[str, ...] = ('red', 'green', 'blue', 'yellow')
-SYMBOLS:  tuple[str, ...] = ('circle', 'square', 'triangle', 'star')
+SYMBOLS:  tuple[str, ...] = ('bio', 'tar', 'tri', 'hex')
 DIR_LIST: tuple[str, ...] = ('N', 'S', 'E', 'W')
 
 # The unreachable 2×2 centre block
@@ -69,42 +69,32 @@ OPP: dict[str, str] = {'N': 'S', 'S': 'N', 'W': 'E', 'E': 'W'}
 
 # (row, col, color, symbol, wall_dir_A, wall_dir_B)
 FIXED_TARGETS_DEF: list[tuple] = [
-    (1,  2,  'red',    'circle',   'S', 'E'),
-    (2,  13, 'red',    'square',   'N', 'W'),
-    (11, 5,  'red',    'triangle', 'S', 'E'),
-    (9,  12, 'red',    'star',     'N', 'W'),
-    (3,  1,  'green',  'circle',   'N', 'E'),
-    (4,  9,  'green',  'square',   'S', 'W'),
-    (1,  6,  'green',  'triangle', 'S', 'W'),
-    (13, 3,  'green',  'star',     'N', 'E'),
-    (5,  4,  'blue',   'circle',   'N', 'E'),
-    (2,  10, 'blue',   'square',   'S', 'W'),
-    (10, 2,  'blue',   'triangle', 'S', 'E'),
-    (6,  14, 'blue',   'star',     'N', 'W'),
-    (4,  6,  'yellow', 'circle',   'S', 'E'),
-    (1,  11, 'yellow', 'square',   'N', 'W'),
-    (12, 9,  'yellow', 'triangle', 'S', 'W'),
-    (14, 13, 'yellow', 'star',     'N', 'W'),
-    (8,  11, 'all',    'vortex',   'S', 'W'),
+    (4,  9,  'blue',   'bio', 'S', 'E'),
+    (1,  5,  'blue',   'tar', 'W', 'S'),
+    (3,  14, 'blue',   'tri', 'E', 'N'),
+    (11, 13, 'blue',   'hex', 'W', 'N'),
+    (10, 8,  'yellow', 'bio', 'E', 'S'),
+    (1,  11, 'yellow', 'tar', 'N', 'W'),
+    (6,  1,  'yellow', 'tri', 'E', 'N'),
+    (6,  12, 'yellow', 'hex', 'W', 'S'),
+    (5,  6,  'green',  'bio', 'W', 'N'),
+    (13, 9,  'green',  'tar', 'W', 'S'),
+    (14, 2,  'green',  'tri', 'S', 'W'),
+    (9,  1,  'green',  'hex', 'E', 'N'),
+    (9,  5,  'red',    'bio', 'W', 'N'),
+    (12, 6,  'red',    'tar', 'S', 'E'),
+    (14, 14, 'red',    'tri', 'N', 'E'),
+    (4,  3,  'red',    'hex', 'E', 'S'),
 ]
 
 EXTRA_WALLS_DEF: list[tuple[int, int, str]] = [
-    (2,  3,  'E'),  (3,  3,  'S'),
-    (5,  2,  'N'),  (5,  2,  'E'),
-    (6,  5,  'S'),  (6,  5,  'W'),
-    (3,  7,  'S'),
-    (2,  8,  'S'),
-    (3,  12, 'N'),  (3,  12, 'E'),
-    (5,  10, 'S'),  (5,  11, 'W'),
-    (6,  8,  'N'),
-    (9,  1,  'S'),  (9,  4,  'N'),
-    (10, 6,  'E'),  (11, 7,  'S'),
-    (13, 5,  'N'),  (14, 2,  'E'),
-    (9,  9,  'S'),  (9,  13, 'N'),
-    (11, 11, 'E'),  (12, 10, 'N'),
-    (13, 14, 'S'),  (14, 8,  'E'),
-    (6,  3,  'N'),  (9,  6,  'S'),
-    (6,  13, 'S'),  (9,  10, 'N'),
+    # Single walls touching borders
+    (0,  2,  'E'),  (0,  8,  'E'),
+    (15, 5,  'E'),  (15, 11, 'E'),
+    (3,  0,  'S'),  (10, 0,  'S'),
+    (1,  15, 'S'),  (9,  15, 'S'),
+    # Extra L-wall (no target)
+    (2,  7,  'S'),  (2,  7,  'E'),
 ]
 
 
