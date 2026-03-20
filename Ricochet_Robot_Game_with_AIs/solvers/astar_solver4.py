@@ -1,11 +1,12 @@
 from __future__ import annotations
 import heapq
+from multiprocessing import heap
 from game import Game, Move, Solution, Robots, CFG
 
 
 class SolverAStarH4:
     name  = "A*4"
-    color = "#E67E22"   # orange
+    color = "#E74C3C"   # rouge vif
 
     def __init__(self, game: Game) -> None:
         self.game = game
@@ -19,6 +20,7 @@ class SolverAStarH4:
         heap: list = [(h0, 0, ctr, initial_state, [])]
         visited: set[tuple] = set()
         self.last_visited_nodes = 0
+        self._h_cache: dict[tuple, int] = {}
 
         while heap:
             _, g, _, cur, hist = heapq.heappop(heap)
@@ -37,7 +39,14 @@ class SolverAStarH4:
                 nskey = self.game.state_key(nc, nh, active)
                 if nskey in visited:
                     continue
-                h = self.game.heuristic_4(nc, active, tpos, nh)
+                # ── cache H4 ──
+                cache_key = (tuple(sorted(nc.items())),
+                             self.game.has_ricocheted(nh, active))
+                if cache_key not in self._h_cache:
+                    self._h_cache[cache_key] = self.game.heuristic_4(
+                        nc, active, tpos, nh)
+                h = self._h_cache[cache_key]
+                # ──────────────
                 ctr += 1
                 heapq.heappush(heap, (ng + h, ng, ctr, nc, nh))
         return None

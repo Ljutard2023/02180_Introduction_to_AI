@@ -111,7 +111,7 @@ def _heuristic_3(robots: Robots, active: str,
     ricochet_penalty = 0.0 if rh else 1.0
     return manhattan + align_penalty + ricochet_penalty
 
-
+"""
 def _can_slide_to(board, robots: Robots, active: str,
                   tpos: tuple[int, int]) -> bool:
     for d in DIR_LIST:
@@ -128,6 +128,7 @@ def _heuristic_4(board, robots: Robots, active: str,
     if _can_slide_to(board, robots, active, tpos):
         return 1 if rh else 2
     return 2
+"""
 
 def _min_moves_to_target(board, robots: Robots, active: str,
                           tpos: tuple[int, int],
@@ -154,7 +155,7 @@ def _min_moves_to_target(board, robots: Robots, active: str,
     return max_depth + 1   # ← valeur par défaut si non trouvé
 
 
-def _heuristic_6(board, robots: Robots, active: str,
+def _heuristic_4(board, robots: Robots, active: str,
                  tpos: tuple[int, int], rh: bool) -> int:
     pos = robots.get(active)
     if pos == tpos and rh:
@@ -242,25 +243,25 @@ class Game:
         """H3 used by A*3: Manhattan + alignment + ricochet."""
         return _heuristic_3(robots, active, target_pos,
                             self.has_ricocheted(history, active))
-    
+    """
     def heuristic_4(self, robots: Robots, active: str,
                     target_pos: tuple[int, int], history: list[Move]) -> int:
-        """H4 : reachability réelle + ricochet. Domine H1."""
+        #H4 : reachability réelle + ricochet. Domine H1.
         return _heuristic_4(self.board, robots, active, target_pos,
                         self.has_ricocheted(history, active))
 
     def heuristic_5(self, robots: Robots, active: str,
                     target_pos: tuple[int, int], history: list[Move]) -> float:
-        """H5 : max(H3, H4) — domine les deux, admissible."""
+        #H5 : max(H3, H4) — domine les deux, admissible.
         return max(
             self.heuristic_3(robots, active, target_pos, history),
             self.heuristic_4(robots, active, target_pos, history)
     )
-
-    def heuristic_6(self, robots: Robots, active: str,
+    """
+    def heuristic_4(self, robots: Robots, active: str,
                     target_pos: tuple[int, int], history: list[Move]) -> int:
-        """H6 : mini-BFS exact sur robot actif."""
-        return _heuristic_6(self.board, robots, active, target_pos,
+        """H4 : mini-BFS exact sur robot actif."""
+        return _heuristic_4(self.board, robots, active, target_pos,
                             self.has_ricocheted(history, active))
 
     def get_successors(

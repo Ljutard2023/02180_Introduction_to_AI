@@ -56,8 +56,8 @@ from solvers.astar_solver  import SolverAStar
 from solvers.astar_solver2 import SolverAStarH2
 from solvers.astar_solver3 import SolverAStarH3
 from solvers.astar_solver4 import SolverAStarH4
-from solvers.astar_solver5 import SolverAStarH5
-from solvers.astar_solver6 import SolverAStarH6
+#from solvers.astar_solver5 import SolverAStarH5
+#from solvers.astar_solver4 import SolverAStarH4
 
 
 
@@ -69,9 +69,9 @@ SOLVERS: dict[str, type] = {
     'A*1':  SolverAStar,
     'A*2':  SolverAStarH2,
     'A*3':  SolverAStarH3,
-    #'A*4':  SolverAStarH4, 
+    'A*4':  SolverAStarH4, 
     #'A*5':  SolverAStarH5,
-    'A*6':  SolverAStarH6,
+    #'A*6':  SolverAStarH6,
 }
 
 
