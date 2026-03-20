@@ -27,7 +27,9 @@ from solvers.dfs_solver    import SolverDFS
 from solvers.astar_solver  import SolverAStar
 from solvers.astar_solver2 import SolverAStarH2
 from solvers.astar_solver3 import SolverAStarH3
-
+from solvers.astar_solver4 import SolverAStarH4
+from solvers.astar_solver5 import SolverAStarH5
+from solvers.astar_solver6 import SolverAStarH6
 
 # Solvers to benchmark (name → class)
 BENCH_SOLVERS: dict[str, type] = {
@@ -36,6 +38,9 @@ BENCH_SOLVERS: dict[str, type] = {
     'A*1':  SolverAStar,
     'A*2':  SolverAStarH2,
     'A*3':  SolverAStarH3,
+    #'A*4':  SolverAStarH4,
+    #'A*5':  SolverAStarH5,
+    'A*6':  SolverAStarH6,
 }
 
 # How many random (board-state, target) scenarios to test
@@ -135,7 +140,7 @@ class BenchmarkWindow(tk.Toplevel):
             self._row_labels[name] = tuple(lbls)
 
         # Bar chart canvas
-        self._chart_cv = tk.Canvas(self, width=500, height=80,
+        self._chart_cv = tk.Canvas(self, width=700, height=80,
                                    bg='#1B2631', highlightthickness=0)
         self._chart_cv.pack(padx=14, pady=(4, 2))
 

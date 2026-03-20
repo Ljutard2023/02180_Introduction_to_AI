@@ -20,6 +20,8 @@ Defines:
 from __future__ import annotations
 
 from typing import Iterator
+from collections import deque
+
 
 from board import Board, Robots, COLORS, DIR_LIST, CFG, _copy_robots, _skey
 
@@ -110,6 +112,58 @@ def _heuristic_3(robots: Robots, active: str,
     return manhattan + align_penalty + ricochet_penalty
 
 
+def _can_slide_to(board, robots: Robots, active: str,
+                  tpos: tuple[int, int]) -> bool:
+    for d in DIR_LIST:
+        if board.slide(robots, active, d) == tpos:
+            return True
+    return False
+
+
+def _heuristic_4(board, robots: Robots, active: str,
+                 tpos: tuple[int, int], rh: bool) -> int:
+    pos = robots.get(active)
+    if pos == tpos and rh:
+        return 0
+    if _can_slide_to(board, robots, active, tpos):
+        return 1 if rh else 2
+    return 2
+
+def _min_moves_to_target(board, robots: Robots, active: str,
+                          tpos: tuple[int, int],
+                          max_depth: int = 4) -> int:   # ← limite à 4
+    start = robots.get(active)
+    if start == tpos:
+        return 0
+    queue   = deque([(start, 0)])
+    visited = {start}
+    while queue:
+        pos, moves = queue.popleft()
+        if moves >= max_depth:        # ← stop si trop profond
+            continue
+        temp = dict(robots)
+        temp[active] = pos
+        for d in DIR_LIST:
+            npos = board.slide(temp, active, d)
+            if npos == pos or npos in visited:
+                continue
+            if npos == tpos:
+                return moves + 1
+            visited.add(npos)
+            queue.append((npos, moves + 1))
+    return max_depth + 1   # ← valeur par défaut si non trouvé
+
+
+def _heuristic_6(board, robots: Robots, active: str,
+                 tpos: tuple[int, int], rh: bool) -> int:
+    pos = robots.get(active)
+    if pos == tpos and rh:
+        return 0
+    min_moves = _min_moves_to_target(board, robots, active, tpos)
+    if not rh and min_moves <= 1:
+        return min_moves + 1
+    return min_moves
+
 def _state_key(robots: Robots, hist: list[Move], active: str) -> tuple:
     """
     Compact, hashable visited-set key that captures everything that matters
@@ -187,6 +241,26 @@ class Game:
                     target_pos: tuple[int, int], history: list[Move]) -> float:
         """H3 used by A*3: Manhattan + alignment + ricochet."""
         return _heuristic_3(robots, active, target_pos,
+                            self.has_ricocheted(history, active))
+    
+    def heuristic_4(self, robots: Robots, active: str,
+                    target_pos: tuple[int, int], history: list[Move]) -> int:
+        """H4 : reachability réelle + ricochet. Domine H1."""
+        return _heuristic_4(self.board, robots, active, target_pos,
+                        self.has_ricocheted(history, active))
+
+    def heuristic_5(self, robots: Robots, active: str,
+                    target_pos: tuple[int, int], history: list[Move]) -> float:
+        """H5 : max(H3, H4) — domine les deux, admissible."""
+        return max(
+            self.heuristic_3(robots, active, target_pos, history),
+            self.heuristic_4(robots, active, target_pos, history)
+    )
+
+    def heuristic_6(self, robots: Robots, active: str,
+                    target_pos: tuple[int, int], history: list[Move]) -> int:
+        """H6 : mini-BFS exact sur robot actif."""
+        return _heuristic_6(self.board, robots, active, target_pos,
                             self.has_ricocheted(history, active))
 
     def get_successors(

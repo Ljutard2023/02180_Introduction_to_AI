@@ -42,6 +42,7 @@ import threading
 import random
 import tkinter as tk
 from tkinter import messagebox, simpledialog, ttk
+from unicodedata import name
 
 from board import (
     Board, CFG, Robots,
@@ -54,6 +55,10 @@ from solvers.dfs_solver    import SolverDFS
 from solvers.astar_solver  import SolverAStar
 from solvers.astar_solver2 import SolverAStarH2
 from solvers.astar_solver3 import SolverAStarH3
+from solvers.astar_solver4 import SolverAStarH4
+from solvers.astar_solver5 import SolverAStarH5
+from solvers.astar_solver6 import SolverAStarH6
+
 
 
 # ── Solver registry ────────────────────────────────────────────────────────────
@@ -64,6 +69,9 @@ SOLVERS: dict[str, type] = {
     'A*1':  SolverAStar,
     'A*2':  SolverAStarH2,
     'A*3':  SolverAStarH3,
+    #'A*4':  SolverAStarH4, 
+    #'A*5':  SolverAStarH5,
+    'A*6':  SolverAStarH6,
 }
 
 
@@ -98,11 +106,13 @@ class AIWindow(tk.Toplevel):
 
         self.title("AI Solver – Ricochet Robots")
         self.resizable(True, False)
-        self.minsize(540, 0)
+        self.minsize(740, 0)
         self.configure(bg='#1A252F')
 
-        self.solutions: dict[str, Solution] = {}
-        self.times:     dict[str, float]    = {}
+        self.solutions:        dict[str, Solution] = {}
+        self.times:            dict[str, float]    = {}
+        self.solver_instances: dict[str, object]   = {}
+
 
         self._pb_moves:  list[Move] = []
         self._pb_step:   int        = 0
@@ -133,8 +143,8 @@ class AIWindow(tk.Toplevel):
         tf = tk.Frame(self, bg='#2C3E50', padx=8, pady=8)
         tf.pack(padx=14, pady=(10, 4), fill=tk.X)
 
-        headers = ['Algorithm', 'Moves', 'Time (s)', 'Status', '  ', 'Playback']
-        widths  = [12, 6, 9, 10, 4, 10]
+        headers = ['Algorithm', 'Moves', 'Time (s)', 'Visited','Status', '  ', 'Playback']
+        widths  = [12, 6, 9, 9, 10, 4, 10]
         for ci, (h, w) in enumerate(zip(headers, widths)):
             tk.Label(tf, text=h, font=('Helvetica', 9, 'bold'),
                      fg='#F39C12', bg='#2C3E50', width=w, anchor='w'
@@ -159,13 +169,18 @@ class AIWindow(tk.Toplevel):
                           width=widths[2], anchor='center')
             tm.grid(row=row, column=2, padx=3)
 
+            vn = tk.Label(tf, text="…", font=('Helvetica', 9),
+                          fg='white', bg='#2C3E50',
+                          width=widths[3], anchor='center')
+            vn.grid(row=row, column=3, padx=3)
+
             st = tk.Label(tf, text="running", font=('Helvetica', 9),
                           fg='#BDC3C7', bg='#2C3E50',
-                          width=widths[3], anchor='center')
-            st.grid(row=row, column=3, padx=3)
+                          width=widths[4], anchor='center')
+            st.grid(row=row, column=4, padx=3)
 
             pb_spin = ttk.Progressbar(tf, mode='indeterminate', length=30)
-            pb_spin.grid(row=row, column=4, padx=2)
+            pb_spin.grid(row=row, column=5, padx=2)
             pb_spin.start(10)
 
             pb_btn = tk.Button(
@@ -173,9 +188,9 @@ class AIWindow(tk.Toplevel):
                 bg='#566573', fg='white', width=8,
                 state=tk.DISABLED,
                 command=lambda n=name: self._start_playback(n))
-            pb_btn.grid(row=row, column=5, padx=3, pady=2)
+            pb_btn.grid(row=row, column=6, padx=3, pady=2)
 
-            self._row_widgets[name] = (mv, tm, st, pb_spin, pb_btn)
+            self._row_widgets[name] = (mv, tm, vn, st, pb_spin, pb_btn)
 
     def _build_chart(self) -> None:
         self._chart_frame = tk.Frame(self, bg='#1A252F')
@@ -184,7 +199,7 @@ class AIWindow(tk.Toplevel):
                  font=('Helvetica', 8, 'bold'), fg='#BDC3C7', bg='#1A252F'
                  ).pack(anchor='w')
         self._chart_cv = tk.Canvas(self._chart_frame,
-                                   width=480, height=70,
+                                   width=680, height=70,
                                    bg='#2C3E50', highlightthickness=0)
         self._chart_cv.pack(fill=tk.X)
         self._chart_cv.create_text(240, 35, text="Waiting for results…",
@@ -207,7 +222,7 @@ class AIWindow(tk.Toplevel):
         self._lbl_full = tk.Label(
             self, text="",
             font=('Helvetica', 8), fg='#95A5A6', bg='#1A252F',
-            justify=tk.LEFT, wraplength=500)
+            justify=tk.LEFT, wraplength=700)
         self._lbl_full.pack(padx=14, pady=(0, 6))
 
         # Control buttons
@@ -261,6 +276,7 @@ class AIWindow(tk.Toplevel):
         tcolor = self.target[2]
         snap   = _copy_robots(self.robots_start)
         solver = cls(game)
+        self.solver_instances[name] = solver
 
         t0 = time.perf_counter()
         if tcolor == 'all':
@@ -279,9 +295,11 @@ class AIWindow(tk.Toplevel):
         self.after(0, self._update_row, name, sol, dt)
 
     def _update_row(self, name: str, sol: Solution, dt: float) -> None:
-        mv, tm, st, pb_spin, pb_btn = self._row_widgets[name]
+        mv, tm, vn, st, pb_spin, pb_btn = self._row_widgets[name]
         mv.config(text=str(len(sol)) if sol else '—')
         tm.config(text=f"{dt:.3f}")
+        visited_n = getattr(self.solver_instances.get(name), 'last_visited_nodes', '?')
+        vn.config(text=str(visited_n))
         if sol:
             st.config(text='✓ found', fg='#2ECC71')
             pb_btn.config(state=tk.NORMAL, bg=self._solvers[name].color)
@@ -336,8 +354,8 @@ class AIWindow(tk.Toplevel):
 
         # ── Stats table ───────────────────────────────────────────────────────
         print(f'  {"Algorithm":<10}  {"Moves":>5}  {"Time (s)":>9}  '
-              f'{"Status":<12}  Solution')
-        print(f'  {"-"*10}  {"-"*5}  {"-"*9}  {"-"*12}  {"-"*36}')
+              f'{"Visited":>8}  {"Status":<12}  Solution')
+        print(f'  {"-"*10}  {"-"*5}  {"-"*9}  {"-"*8}  {"-"*12}  {"-"*36}')
         for name in self._solvers:
             sol = self.solutions.get(name)
             dt  = self.times.get(name, 0.0)
@@ -350,8 +368,9 @@ class AIWindow(tk.Toplevel):
                 mv_str  = '—'
                 status  = '✗ Not found'
                 sol_str = '—'
-            print(f'  {name:<10}  {mv_str:>5}  {dt:>9.3f}  '
-                  f'{status:<12}  {sol_str}')
+            #print(f'  {name:<10}  {mv_str:>5}  {dt:>9.3f}  {status:<12}  {sol_str}')
+            visited_n = getattr(self.solver_instances.get(name), 'last_visited_nodes', '?')
+            print(f'  {name:<10}  {mv_str:>5}  {dt:>9.3f}  {visited_n:>8}  {status:<12}  {sol_str}')
         print()
 
         print(sep + '\n')
