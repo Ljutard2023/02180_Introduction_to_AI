@@ -27,6 +27,9 @@ solvers/
     astar_solver.py      ← A*1 (H1: alignment + ricochet)
     astar_solver2.py     ← A*2 (H2: normalized Manhattan + alignment)
     astar_solver3.py     ← A*3 (H3: Manhattan + alignment + ricochet)
+    astar_solver4.py     ← skipped 
+    astar_solver5.py     ← skipped   
+    astar_solver6.py     ← A*6 (H6: Mini-BFS on relaxed problem)
 ```
 
 ---
@@ -47,6 +50,7 @@ Public API used by solvers:
 | `heuristic_1(...)` | H1 for A*1 (alignment + ricochet) |
 | `heuristic_2(...)` | H2 for A*2 (normalized Manhattan + alignment) |
 | `heuristic_3(...)` | H3 for A*3 (Manhattan + alignment + ricochet) |
+| `heuristic_3(...)` | H6 for A*6 (Mini-BFS on relaxed problem)      |
 
 This separation makes the AI code independent from rendering and low-level board implementation details, as required by the assignment.
 
@@ -115,6 +119,7 @@ Five algorithms run sequentially in a background worker:
 | **A\*1**  | Heuristic-guided | H1 = alignment + ricochet |
 | **A\*2**  | Heuristic-guided | H2 = normalized Manhattan + alignment |
 | **A\*3**  | Heuristic-guided | H3 = Manhattan + alignment + ricochet |
+| **A\*6**  | Heuristic-guided | H6 = Mini-BFS on relaxed problem      |
 
 ### Viewing solutions
 
@@ -147,7 +152,7 @@ This includes:
 
 - State/action/result/terminal/utility definitions.
 - State-space estimate and implications for search.
-- Solver design (BFS, DFS, A*1, A*2, A*3).
+- Solver design (BFS, DFS, A*1, A*2, A*3, A*6).
 - Heuristic definitions and admissibility rationale.
 - Tunable parameters and benchmark methodology (moves/time/visited nodes).
 - Explicit API-separation argument.
