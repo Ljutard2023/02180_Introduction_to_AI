@@ -82,6 +82,12 @@ brew install python-tk
 
 ## How to Run
 
+For better UI (User Interface) experience, team recommends to run the code on Windows. 
+The code works perfectly well on MacOS as well, however, depending on the version, the
+UI may not display the letters visibly on the control buttons. The letters are still
+there, however, the user must press and hold the button, without activating it, to see
+what the selected control will do.
+
 ```bash
 python main.py
 ```
